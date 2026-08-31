@@ -1,0 +1,19 @@
+{
+    "name": "@lockness/queue",
+    "version": "0.2.0",
+    "license": "MIT",
+    "exports": "./mod.ts",
+    "tasks": {
+        "test": "deno test -A tests/",
+        "test:watch": "deno test -A --watch tests/"
+    },
+    "publish": {
+        "exclude": [
+            "tests/"
+        ]
+    },
+    "imports": {
+        "@std/assert": "jsr:@std/assert@1"
+    },
+    "description": "Background job processing system with multiple drivers (Memory, Deno KV), automatic retries, and delayed execution"
+}
