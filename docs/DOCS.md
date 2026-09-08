@@ -19,12 +19,62 @@ import { configureQueue, dispatch, QueueWorker } from '@lockness/queue'
 
 ```typescript
 configureQueue({
-    driver: 'memory', // 'memory' | 'deno-kv'
+    driver: 'memory', // 'memory' | 'deno-kv' | 'redis'
     defaultQueue: 'default',
     kvPath: './data/kv', // optional, for deno-kv driver
     retryDelay: 3000, // 3 seconds between retries
+    deadLetterRetentionMs: 14 * 24 * 60 * 60 * 1000, // 14 days (default)
+    deadLetterMaxEntries: 10_000, // in-memory cap only (default)
 })
 ```
+
+### Dead-letter retention
+
+A job that exhausts its retries is moved to the dead-letter store rather than
+dropped. Because a failed job's payload is sensitive data, the store is **not**
+retained indefinitely — every driver enforces a retention window:
+
+- **`deadLetterRetentionMs`** — how long a dead-lettered job is kept, in
+  milliseconds. **Default: 14 days.** The Deno KV driver writes each entry with
+  an `expireIn` so it self-expires; the memory and Redis drivers purge entries
+  older than the window opportunistically, on every `deadLetter` write and on
+  `listFailed`.
+- **`deadLetterMaxEntries`** — an additional count cap for the **in-memory**
+  driver only (it has no external store to expire keys for it). Once exceeded,
+  the oldest entry is evicted. **Default: 10 000.** The durable drivers ignore
+  it; they are bounded by the retention window alone.
+
+### Redis-backed workers from the environment
+
+The `queue:work`, `queue:clear` and `queue:retry` commands read the driver and
+its connection from the environment, so a Redis-backed worker needs no code
+change — only variables. Set `QUEUE_DRIVER=redis` and the `REDIS_*` connection
+variables (the same names the Redis-backed session store uses):
+
+| Variable         | Maps to    | Notes                                   |
+| ---------------- | ---------- | --------------------------------------- |
+| `REDIS_HOST`     | `hostname` | **Required** when `QUEUE_DRIVER=redis`. |
+| `REDIS_PORT`     | `port`     | Positive integer; Redis default `6379`. |
+| `REDIS_DB`       | `db`       | Positive integer; Redis default `0`.    |
+| `REDIS_PASSWORD` | `password` | Optional `AUTH` credential.             |
+| `REDIS_TLS`      | `tls`      | `true`/`1` to wrap the socket with TLS. |
+
+```bash
+QUEUE_DRIVER=redis \
+REDIS_HOST=redis.internal \
+REDIS_PORT=6379 \
+REDIS_PASSWORD=... \
+REDIS_TLS=true \
+  deno task cli queue:work --queue=emails
+```
+
+`REDIS_HOST` is required (unlike the session store's dev-friendly `localhost`
+default): a background worker is a deployed process, so a silent fallback to
+localhost would mask a misconfiguration. When it is missing the command exits
+with a clear `RedisQueueConfigError` naming the variable, rather than a
+downstream socket error. Setting `REDIS_PASSWORD` with `REDIS_TLS` off sends the
+credential over plaintext — `RedisClient` raises a one-time cleartext-`AUTH`
+warning when it connects (it is neither suppressed nor duplicated here).
 
 ## Basic Usage
 

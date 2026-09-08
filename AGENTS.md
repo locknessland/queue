@@ -20,12 +20,12 @@ names does not belong here._
 
 <!-- generated:deps -->
 
-| Direction                                      | Packages                                                                                                         |
-| :--------------------------------------------- | :--------------------------------------------------------------------------------------------------------------- |
-| Imports (static)                               | —                                                                                                                |
-| Imports (soft, via `tryImportOptionalPackage`) | —                                                                                                                |
-| Imported by                                    | `cli`                                                                                                            |
-| **Must never import**                          | `cli`, `core`, `drizzle`, `init`, `openapi` — each already reaches this package, so importing one closes a cycle |
+| Direction                                      | Packages                                                                                                                                 |
+| :--------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
+| Imports (static)                               | `contract`, `redis`                                                                                                                      |
+| Imports (soft, via `tryImportOptionalPackage`) | —                                                                                                                                        |
+| Imported by                                    | `cli`, `mail`, `notification`                                                                                                            |
+| **Must never import**                          | `cli`, `core`, `drizzle`, `init`, `mail`, `notification`, `openapi` — each already reaches this package, so importing one closes a cycle |
 
 Enforced by `deno task deps:analyze` against `deps.policy.jsonc`. A soft edge is
 deliberately **not** declared in this package's `deno.json`: the consuming
@@ -37,12 +37,12 @@ application installs it, or the feature stays off.
 
 <!-- generated:surface -->
 
-| Kind      | Exports                                                                                                                                                  |
-| :-------- | :------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| class     | `DenoKvQueueDriver`, `MemoryQueueDriver`, `QueueWorker`                                                                                                  |
-| function  | `Queueable`, `clearQueue`, `configureQueue`, `dispatch`, `dispatchByName`, `getJobClass`, `getQueueConfig`, `queueSize`, `registerJob`, `setQueueDriver` |
-| interface | `DispatchOptions`, `Job`, `JobPayload`, `QueueConfig`, `QueueDriver`, `SerializedJob`, `WorkerOptions`                                                   |
-| typeAlias | `AnyJobClass`, `JobClass`                                                                                                                                |
+| Kind      | Exports                                                                                                                                                                                                              |
+| :-------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| class     | `DenoKvQueueDriver`, `MemoryQueueDriver`, `QueueWorker`, `RedisQueueDriver`                                                                                                                                          |
+| function  | `Queueable`, `clearQueue`, `computeNextAvailable`, `configureQueue`, `dispatch`, `dispatchByName`, `getJobClass`, `getQueueConfig`, `listFailedJobs`, `queueSize`, `registerJob`, `retryFailedJob`, `setQueueDriver` |
+| interface | `DeadLetterEntry`, `DeadLetterRetentionOptions`, `DispatchOptions`, `Job`, `JobPayload`, `QueueConfig`, `QueueDriver`, `SerializedJob`, `WorkerOptions`                                                              |
+| typeAlias | `JobClass`                                                                                                                                                                                                           |
 
 Anything not listed is internal and free to change.
 
@@ -65,9 +65,15 @@ Anything not listed is internal and free to change.
 
 <!-- generated:tests -->
 
-1 test file for 1 source file:
+7 test files for 12 source files:
 
+- `packages/queue/tests/backoff.test.ts`
+- `packages/queue/tests/dead_letter.test.ts`
+- `packages/queue/tests/dlq_retention.test.ts`
 - `packages/queue/tests/queue.test.ts`
+- `packages/queue/tests/redis_driver.test.ts`
+- `packages/queue/tests/shutdown.test.ts`
+- `packages/queue/tests/worker_seam.test.ts`
 
 <!-- /generated:tests -->
 
@@ -83,7 +89,7 @@ deno task deps:analyze     # cycles, declaration drift, tier policy
 deno task agents:brief     # refresh this file's generated blocks
 ```
 
-Then, specific to this package: run its 1 test file directly —
+Then, specific to this package: run its 7 test files directly —
 
 ```bash
 deno test -A packages/queue/
