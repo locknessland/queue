@@ -84,8 +84,7 @@ Anything not listed is internal and free to change.
 The framework-wide gate, from the repository root:
 
 ```bash
-deno fmt && deno lint && deno check && deno task test
-deno task deps:analyze     # cycles, declaration drift, tier policy
+deno task gate             # the full gate, as the pre-push hook runs it
 deno task agents:brief     # refresh this file's generated blocks
 ```
 
